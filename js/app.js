@@ -286,30 +286,47 @@ function renderTable() {
     const head = document.getElementById("table-head");
     const body = document.getElementById("data-body");
 
-    // 헤더
+    // 헤더 - 팀별
     teams.forEach(team => {
         const th = document.createElement("th");
         th.innerText = team;
         head.appendChild(th);
     });
 
+    // 헤더 - 포지션 합계 열
+    const totalHead = document.createElement("th");
+    totalHead.innerText = "합계";
+    head.appendChild(totalHead);
+
     // 바디 - 포지션별 행
     positions.forEach(pos => {
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${pos}</td>`;
+
+        let rowTotal = 0;
         teams.forEach(team => {
-            tr.innerHTML += `<td>${data[pos][team]}</td>`;
+            const value = data[pos][team];
+            rowTotal += value;
+            tr.innerHTML += `<td>${value}</td>`;
         });
+
+        // 포지션별 합계(행 합계)
+        tr.innerHTML += `<td>${rowTotal.toLocaleString()}</td>`;
         body.appendChild(tr);
     });
 
     // 바디 - 맨 아래 합계 행
     const totalRow = document.createElement("tr");
     totalRow.innerHTML = `<td>합계</td>`;
+
+    let grandTotal = 0;
     teams.forEach(team => {
         const total = teamTotals[team] || 0;
         totalRow.innerHTML += `<td>${total.toLocaleString()}</td>`;
+        grandTotal += total;
     });
+    // 전체 합계 (모든 팀, 모든 포지션)
+    totalRow.innerHTML += `<td>${grandTotal.toLocaleString()}</td>`;
     body.appendChild(totalRow);
 }
 
