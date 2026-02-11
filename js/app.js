@@ -242,6 +242,7 @@ function init() {
     calculateTotals();
     renderButtons();
     renderTable();
+    renderTeamTotals();
 }
 
 // ---------------- 계산 ----------------
@@ -302,6 +303,25 @@ function renderTable() {
         });
         body.appendChild(tr);
     });
+}
+
+function renderTeamTotals() {
+    const container = document.getElementById("team-totals");
+    if (!container) return;
+
+    let html = `<h3>팀별 전체 카드 수 (모든 포지션 합계)</h3>`;
+
+    Object.keys(teamTotals).forEach(team => {
+        const total = teamTotals[team] || 0;
+        html += `
+            <div class="detail-item">
+                <span>${team}</span>
+                <span>${total.toLocaleString()}</span>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
 // ---------------- 결과 계산 ----------------
