@@ -273,9 +273,28 @@ function renderButtons() {
         const btn = document.createElement("button");
         btn.className = "position-btn";
         btn.dataset.position = pos;
+        btn.dataset.state = "none"; // none | include | exclude
         btn.innerText = pos;
         btn.onclick = () => {
-            btn.classList.toggle("selected");
+            const current = btn.dataset.state || "none";
+            let next = "none";
+
+            if (current === "none") {
+                next = "include";      // 필요한 포지션
+            } else if (current === "include") {
+                next = "exclude";      // 제외할 포지션
+            } else {
+                next = "none";         // 다시 미선택
+            }
+
+            btn.dataset.state = next;
+            btn.classList.remove("selected", "excluded");
+            if (next === "include") {
+                btn.classList.add("selected");
+            } else if (next === "exclude") {
+                btn.classList.add("excluded");
+            }
+
             updateResult();
         };
         container.appendChild(btn);
@@ -333,22 +352,39 @@ function renderTable() {
 // ---------------- 결과 계산 ----------------
 
 function updateResult() {
-    const selected = [...document.querySelectorAll(".position-btn.selected")]
+    const buttons = [...document.querySelectorAll(".position-btn")];
+    const includePositions = buttons
+        .filter(btn => btn.dataset.state === "include")
+        .map(btn => btn.dataset.position);
+    const excludePositions = buttons
+        .filter(btn => btn.dataset.state === "exclude")
         .map(btn => btn.dataset.position);
 
-    if (selected.length === 0) {
+    if (includePositions.length === 0 && excludePositions.length === 0) {
         document.getElementById("result").innerHTML =
-            "<h2>포지션을 선택하세요</h2>";
+            "<h2>포지션을 선택하세요</h2><p>버튼을 한 번 누르면 <b>필요 포지션</b>, 두 번 누르면 <b>제외 포지션</b>으로 설정됩니다.</p>";
         return;
     }
 
     const scores = {};
     teams.forEach(team => {
-        scores[team] = selected.reduce((sum, pos) => {
+        let sum = 0;
+
+        // 필요한 포지션: (실제 - 기대값)을 크게 만드는 팀이 유리
+        includePositions.forEach(pos => {
             const actual = data[pos][team];
             const expected = teamTotals[team] * globalRatio[pos];
-            return sum + (actual - expected);
-        }, 0);
+            sum += (actual - expected);
+        });
+
+        // 제외 포지션: (기대값 - 실제)를 크게 만드는 팀이 유리 = 해당 포지션을 덜 뽑는 팀
+        excludePositions.forEach(pos => {
+            const actual = data[pos][team];
+            const expected = teamTotals[team] * globalRatio[pos];
+            sum += (expected - actual);
+        });
+
+        scores[team] = sum;
     });
 
     const maxScore = Math.max(...Object.values(scores));
@@ -356,9 +392,17 @@ function updateResult() {
         .filter(([_, s]) => s === maxScore)
         .map(([t]) => t);
 
-    let html = `<h2>선택 포지션: ${selected.join(", ")}</h2>`;
+    let html = "";
+
+    if (includePositions.length > 0) {
+        html += `<h2>필요 포지션: ${includePositions.join(", ")}</h2>`;
+    }
+    if (excludePositions.length > 0) {
+        html += `<h2>제외 포지션: ${excludePositions.join(", ")}</h2>`;
+    }
+
     html += `<div class="winner">최적 구단: ${winners.join(", ")}</div>`;
-    html += `<h3>특화도 순위</h3>`;
+    html += `<h3>특화도 점수 순위</h3>`;
 
     Object.entries(scores)
         .sort((a, b) => b[1] - a[1])
